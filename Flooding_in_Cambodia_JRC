@@ -1,0 +1,76 @@
+////////Cambodia ////////////
+var country_names = ['Cambodia']; 
+// import the country feasture collection
+var countries = ee.FeatureCollection('ft:1tdSwUL7MVpOauSgRzqVTOwdfy17KDbw-1d9omPw');
+// find the countries in the country list
+var mekongCountries = countries.filter(ee.Filter.inList('Country', country_names));
+// Get the geometry of the countries
+var mekongRegion = mekongCountries.geometry();
+
+///////Areas of permenant water/////////
+// find permenant water for a mask 
+var occurrence = water.select('occurrence');
+var water_mask = occurrence.lte(90);
+
+
+///////////Reccurance of water year on year % in the Mekong Delta
+var recurrence = water.select('recurrence').clip(mekongRegion).updateMask(water_mask);
+var VIS_OCCURRENCE = {
+  min:0,
+  max:100,
+  palette: ['FF69B4', '990623', 'b70b0b', '740699', '3537ae', '021893']
+};
+Map.addLayer(recurrence,VIS_OCCURRENCE,'0.000001')
+
+
+/////area of seasonal water recurrence 1984-2015///////////
+var area_image_with_transition_class = ee.Image.pixelArea().addBands(recurrence);
+var reduction_results = area_image_with_transition_class.reduceRegion({
+  reducer: ee.Reducer.sum().group({
+    groupField: 1,
+    groupName: 'transition_class_value',
+  }),
+  geometry: mekongRegion,
+  scale: 30,
+  maxPixels: 683364907
+});
+print('reduction_results', reduction_results);
+
+/*Export.image.toDrive({
+  image: recurrence,
+  description : 'flood_recur%_yearly_MB',
+  region: geometry,
+  scale: 30,
+  maxPixels: 893300496 
+});
+*/
+////////////Area within arsenic hazard zones 
+//Clipped to As_zone
+var maskAs = As_zone.eq(1);
+var As_zone_reccurance = recurrence.updateMask(maskAs)
+var As_rec = As_zone_reccurance.gt(0);
+Map.addLayer(As_zone_reccurance,VIS_OCCURRENCE,'As_zone_reccurance')
+
+var area_image_with_As = ee.Image.pixelArea().addBands(As_zone_reccurance);
+var reduction_resultsAs = area_image_with_As.reduceRegion({
+  reducer: ee.Reducer.sum().group({
+    groupField: 1,
+    groupName: 'transition_class_value',
+  }),
+  geometry: mekongRegion,
+  scale: 30,
+  maxPixels: 683364907
+});
+print('reduction_resultsAs', reduction_resultsAs);
+
+
+
+
+/*var area_image_with_Aszone = ee.Image.pixelArea().addBands(As_rec);
+print(area_image_with_Aszone.reduceRegion({
+  reducer: ee.Reducer.sum(),
+  geometry:mekongRegion,
+  scale: 30,
+  maxPixels: 683364907
+}));
+*/
