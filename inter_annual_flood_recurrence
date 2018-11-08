@@ -1,0 +1,26 @@
+var country_names = ['Cambodia']; 
+// import the country feasture collection
+var countries = ee.FeatureCollection('ft:1tdSwUL7MVpOauSgRzqVTOwdfy17KDbw-1d9omPw');
+// find the countries in the country list
+var cambodia = countries.filter(ee.Filter.inList('Country', country_names));
+
+
+var seasonality = gsw.select('recurrence');
+
+
+//seasonality in AsZone
+var Mask = AsZone.eq(1);
+var As = AsZone.updateMask(Mask);
+
+var BetweenYearVar_AsZone = seasonality.updateMask(As);
+Map.addLayer(BetweenYearVar_AsZone, {min:1, max:12, palette:['green', 'blue']}, 'BetweenYearVar_AsZone');
+//
+
+//histogram of water duration (months/year) in As zone
+var histogram = BetweenYearVar_AsZone.reduceRegion({
+  reducer: ee.Reducer.autoHistogram(100,1), 
+  geometry: cambodia,
+  scale: 30,
+  maxPixels: 208686681
+});
+print(histogram);
